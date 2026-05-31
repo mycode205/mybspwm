@@ -1,130 +1,158 @@
-#
-# wm independent hotkeys
-#
+#=========================================================
+#                    WM INDEPENDENT HOTKEYS
+#=========================================================
 
-# terminal emulator
+# Terminal Emulator
 super + Return
-	alacritty
+    alacritty
 
-# program launcher
+# Program Launcher
 super + d
-	rofi -show drun
+    rofi -show drun
 
-# make sxhkd reload its configuration files:
-super + Escape
-	pkill -USR1 -x sxhkd
-
-#
-# bspwm hotkeys
-#
-
-# Reload windows
-super + shift + r
-	bspc wm -r
-
-# Reload sxhkd file configuration
+# Reload SXHKD Configuration
 super + Escape
     pkill -USR1 -x sxhkd
 
-# close and kill
+
+#=========================================================
+#                      BSPWM HOTKEYS
+#=========================================================
+
+# Reload BSPWM
+super + shift + r
+    bspc wm -r
+
+# Close Focused Window
 super + q
-	bspc node -c
+    bspc node -c
 
-# alternate between the tiled and monocle layout
+# Toggle Tiled / Monocle Layout
 super + m
-	bspc desktop -l next
+    bspc desktop -l next
 
-# send the newest marked node to the newest preselected node
+# Send Marked Node
 super + y
-	bspc node newest.marked.local -n newest.!automatic.local
+    bspc node newest.marked.local -n newest.!automatic.local
 
-# swap the current node and the biggest window
+# Swap With Biggest Window
 super + g
-	bspc node -s biggest.window
+    bspc node -s biggest.window
 
-#
-# state/flags
-#
 
-# set the window state
-super + {t,shift + t,s,f}
-	bspc node -t {tiled,pseudo_tiled,floating,fullscreen}
+#=========================================================
+#                    DESKTOP NAVIGATION
+#=========================================================
 
-# set the node flags
-super + ctrl + {m,x,y,z}
-	bspc node -g {marked,locked,sticky,private}
-
-#
-# focus/swap
-#
-
-# focus the node in the given direction
-super + {_,shift + }{h,j,k,l}
-	bspc node -{f,s} {west,south,north,east}
-
-# focus the node for the given path jump
-super + {p,b,comma,period}
-	bspc node -f @{parent,brother,first,second}
-
-# focus the next/previous window in the current desktop
-super + {_,shift + }c
-	bspc node -f {next,prev}.local.!hidden.window
-
-# focus the next/previous desktop in the current monitor
+# Previous / Next Desktop
 super + bracket{left,right}
-	bspc desktop -f {prev,next}.local
+    bspc desktop -f {prev,next}.local
 
-# focus the last node/desktop
+# Last Node / Desktop
 super + {grave,Tab}
-	bspc {node,desktop} -f last
+    bspc {node,desktop} -f last
 
-# focus the older or newer node in the focus history
+# Older / Newer Focus History
 super + {o,i}
-	bspc wm -h off; \
-	bspc node {older,newer} -f; \
-	bspc wm -h on
+    bspc wm -h off; \
+    bspc node {older,newer} -f; \
+    bspc wm -h on
 
-# focus or send to the given desktop
+# Focus / Send To Desktop
 super + {_,shift + }{1-9,0}
-	bspc {desktop -f,node -d} '^{1-9,10}'
+    bspc {desktop -f,node -d} '^{1-9,10}'
 
-#
-# preselect
-#
 
-# preselect the direction
+#=========================================================
+#                      PRESELECTION
+#=========================================================
+
+# Preselect Direction
 super + ctrl + {h,j,k,l}
-	bspc node -p {west,south,north,east}
+    bspc node -p {west,south,north,east}
 
-# preselect the ratio
+# Preselect Ratio
 super + ctrl + {1-9}
-	bspc node -o 0.{1-9}
+    bspc node -o 0.{1-9}
 
-# cancel the preselection for the focused node
+# Cancel Node Preselection
 super + ctrl + space
-	bspc node -p cancel
+    bspc node -p cancel
 
-# cancel the preselection for the focused desktop
+# Cancel Desktop Preselection
 super + ctrl + shift + space
-	bspc query -N -d | xargs -I id -n 1 bspc node id -p cancel
-
-#
-# move/resize
-#
-
-# expand a window by moving one of its side outward
-super + alt + {h,j,k,l}
-	bspc node -z {left -20 0,bottom 0 20,top 0 -20,right 20 0}
-
-# contract a window by moving one of its side inward
-super + alt + shift + {h,j,k,l}
-	bspc node -z {right -20 0,top 0 20,bottom 0 -20,left 20 0}
-
-# move a floating window
-super + {Left,Down,Up,Right}
-	bspc node -v {-20 0,0 20,0 -20,20 0}
+    bspc query -N -d | xargs -I id -n 1 bspc node id -p cancel
 
 
+#=========================================================
+#                     WINDOW RESIZE
+#=========================================================
+
+# Resize Window (Arrow Keys)
+super + shift + Left
+    bspc node -z left -20 0
+
+super + shift + Right
+    bspc node -z right 20 0
+
+super + shift + Up
+    bspc node -z top 0 -20
+
+super + shift + Down
+    bspc node -z bottom 0 20
+
+# Resize Window (Vim Keys)
+super + shift + h
+    bspc node -z left -20 0
+
+super + shift + l
+    bspc node -z right 20 0
+
+super + shift + k
+    bspc node -z top 0 -20
+
+super + shift + j
+    bspc node -z bottom 0 20
+
+# Reset Window Sizes
+super + r
+    bspc node @/ -B
+
+
+#=========================================================
+#                     WINDOW FOCUS
+#=========================================================
+
+# Focus Window (Arrow Keys)
+super + Left
+    bspc node -f west
+
+super + Right
+    bspc node -f east
+
+super + Up
+    bspc node -f north
+
+super + Down
+    bspc node -f south
+
+# Focus Window (Vim Keys)
+super + h
+    bspc node -f west
+
+super + l
+    bspc node -f east
+
+super + k
+    bspc node -f north
+
+super + j
+    bspc node -f south
+
+
+#=========================================================
+#                     AUDIO CONTROLS
+#=========================================================
 
 # Volume Up
 XF86AudioRaiseVolume
@@ -134,34 +162,62 @@ XF86AudioRaiseVolume
 XF86AudioLowerVolume
     pactl set-sink-volume @DEFAULT_SINK@ -5%
 
-# Volume Mute / Unmute
+# Toggle Mute
 XF86AudioMute
     pactl set-sink-mute @DEFAULT_SINK@ toggle
 
-# Microphone Mute / Unmute
+# Toggle Microphone Mute
 XF86AudioMicMute
     pactl set-source-mute @DEFAULT_SOURCE@ toggle
 
-##  For brightness
-# Brightness control
+
+#=========================================================
+#                   BRIGHTNESS CONTROLS
+#=========================================================
+
+# Brightness Up
 XF86MonBrightnessUp
     brightnessctl set +5%
 
+# Brightness Down
 XF86MonBrightnessDown
     brightnessctl set 5%-
 
-# For thunar file manager
+
+#=========================================================
+#                  APPLICATION SHORTCUTS
+#=========================================================
+
+# File Manager
 super + e
-   thunar
+    thunar
 
-# For Browser
+# Web Browser
 super + b
-   brave-browser
+    brave-browser
 
-# Swap windows (vim keys)
+
+#=========================================================
+#                      WINDOW SWAP
+#=========================================================
+
+# Swap Windows (Vim Keys)
 super + shift + {h,j,k,l}
     bspc node -s {west,south,north,east}
 
-# Swap windows (arrow keys)
+# Swap Windows (Arrow Keys)
 super + shift + {Left,Down,Up,Right}
     bspc node -s {west,south,north,east}
+
+
+#=========================================================
+#                       SCREENSHOTS
+#=========================================================
+
+# Area Screenshot
+super + shift + s
+    flameshot gui
+
+# Full Screen Screenshot
+Print
+    flameshot full -p ~/Pictures/Screenshots

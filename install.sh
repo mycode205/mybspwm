@@ -69,7 +69,7 @@ for pkg in \
     bspwm sxhkd polybar picom rofi alacritty feh \
     brightnessctl alsa-utils pulseaudio pavucontrol \
     xorg xinit lxappearance papirus-icon-theme \
-    breeze-icon-theme bibata-cursor-theme \
+    breeze-icon-theme bibata-cursor-theme fastfetch \
     fonts-font-awesome fonts-inter curl git unzip x11-xserver-utils \
     libinput-tools
 do
@@ -181,9 +181,10 @@ echo "[✔] Fonts installed successfully"
 # ============================
 echo "[+] Copying configs..."
 
-mkdir -p ~/.config/{alacritty,bspwm,picom,polybar,rofi/themes,sxhkd}
+mkdir -p ~/.config/{alacritty,fastfetch,bspwm,picom,polybar,rofi/themes,sxhkd}
 
 safe_cp "$SCRIPT_DIR/alacritty/alacritty.toml" ~/.config/alacritty/
+safe_cp "$SCRIPT_DIR/fastfetch/config.jsonc" ~/.config/fastfetch/
 safe_cp "$SCRIPT_DIR/bspwm/bspwmrc" ~/.config/bspwm/
 safe_cp "$SCRIPT_DIR/picom/picom.conf" ~/.config/picom/
 safe_cp "$SCRIPT_DIR/polybar/config.ini" ~/.config/polybar/

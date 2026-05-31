@@ -19,17 +19,10 @@ A fully automated installation script to deploy a clean, fast, and keyboard-driv
 
 ---
 
-## 🚀 Installation
-
-### 📦 Option 1: Git Clone (Recommended)
-
+#----------------- Installation
+#------ Option 1: Git Clone (Recommended)
 ```bash
 git clone https://github.com/mycode205/mybspwm.git
 cd mybspwm
 bash install.sh
 
-
-### 📦 Option 2: Git Clone 
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/mycode205/mybspwm/main/install.sh | bash

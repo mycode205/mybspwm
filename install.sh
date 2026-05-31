@@ -1,6 +1,11 @@
 #!/bin/bash
 
-set -e
+# ============================
+# SAFE INSTALL MODE (NO EXIT ON ERROR)
+# ============================
+
+FAILED_PACKAGES=()
+FAILED_FILES=()
 
 # ============================
 # AUTO PERMISSION FIX
@@ -8,33 +13,56 @@ set -e
 SCRIPT_PATH="$(realpath "$0")"
 chmod +x "$SCRIPT_PATH" 2>/dev/null || true
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 echo "=================================="
-echo "   BSPWM SMART INSTALL SCRIPT"
+echo "   BSPWM SMART SAFE INSTALLER"
 echo "=================================="
 
-# ----------------------------
-# Function: check and install
-# ----------------------------
+# ============================
+# FUNCTION: INSTALL PACKAGE SAFELY
+# ============================
 check_install() {
     PKG=$1
 
     if dpkg -l | grep -q " $PKG "; then
         echo "[✔] $PKG already installed"
     else
-        echo "[!] $PKG NOT installed → installing..."
-        sudo apt install -y "$PKG"
+        echo "[+] Installing $PKG ..."
+
+        if sudo apt install -y "$PKG"; then
+            echo "[✔] Installed: $PKG"
+        else
+            echo "[✘] FAILED: $PKG"
+            FAILED_PACKAGES+=("$PKG")
+        fi
     fi
 }
 
-# ----------------------------
-# Update system
-# ----------------------------
+# ============================
+# FUNCTION: SAFE COPY
+# ============================
+safe_cp() {
+    SRC=$1
+    DEST=$2
+
+    if cp -f "$SRC" "$DEST" 2>/dev/null; then
+        echo "[✔] Copied: $SRC"
+    else
+        echo "[✘] FAILED COPY: $SRC"
+        FAILED_FILES+=("$SRC")
+    fi
+}
+
+# ============================
+# UPDATE SYSTEM
+# ============================
 echo "[+] Updating system..."
 sudo apt update
 
-# ----------------------------
-# Core packages
-# ----------------------------
+# ============================
+# CORE PACKAGES
+# ============================
 echo "[+] Installing core packages..."
 
 for pkg in \
@@ -46,23 +74,21 @@ do
     check_install "$pkg"
 done
 
-# ----------------------------
-# Thunar (minimal)
-# ----------------------------
-echo "[+] Installing Thunar (minimal)..."
+# ============================
+# THUNAR MINIMAL
+# ============================
+echo "[+] Installing Thunar..."
 
 for pkg in thunar thunar-volman gvfs udisks2; do
     check_install "$pkg"
 done
 
-# ----------------------------
-# Brave Browser
-# ----------------------------
-echo "[+] Installing Brave Browser..."
+# ============================
+# BRAVE BROWSER
+# ============================
+echo "[+] Installing Brave..."
 
 if ! command -v brave-browser >/dev/null; then
-    echo "[!] Brave not found → installing..."
-
     sudo apt install -y curl
 
     sudo curl -fsSLo /usr/share/keyrings/brave-browser-archive-keyring.gpg \
@@ -73,14 +99,14 @@ if ! command -v brave-browser >/dev/null; then
     sudo tee /etc/apt/sources.list.d/brave-browser-release.list
 
     sudo apt update
-    sudo apt install -y brave-browser
+    sudo apt install -y brave-browser || FAILED_PACKAGES+=("brave-browser")
 else
     echo "[✔] Brave already installed"
 fi
 
-# ----------------------------
-# Fonts
-# ----------------------------
+# ============================
+# FONTS
+# ============================
 echo "[+] Installing Nerd Fonts..."
 
 mkdir -p "$HOME/.local/share/fonts"
@@ -97,28 +123,28 @@ unzip -oq FiraCode.zip -d "$HOME/.local/share/fonts/FiraCode"
 
 fc-cache -fv
 
-# ----------------------------
-# Config copy
-# ----------------------------
+# ============================
+# CONFIG COPY (SAFE MODE)
+# ============================
 echo "[+] Copying configs..."
 
 mkdir -p ~/.config/{alacritty,bspwm,picom,polybar,rofi/themes,sxhkd}
 
-cp -f alacritty/alacritty.toml ~/.config/alacritty/
-cp -f bspwm/bspwmrc ~/.config/bspwm/
-cp -f picom/picom.conf ~/.config/picom/
-cp -f polybar/config.ini ~/.config/polybar/
-cp -f polybar/launch.sh ~/.config/polybar/
-cp -f rofi/config.rasi ~/.config/rofi/
-cp -f rofi/themes/rofi.rasi ~/.config/rofi/themes/
-cp -f sxhkd/sxhkdrc ~/.config/sxhkd/
+safe_cp "$SCRIPT_DIR/alacritty/alacritty.toml" ~/.config/alacritty/
+safe_cp "$SCRIPT_DIR/bspwm/bspwmrc" ~/.config/bspwm/
+safe_cp "$SCRIPT_DIR/picom/picom.conf" ~/.config/picom/
+safe_cp "$SCRIPT_DIR/polybar/config.ini" ~/.config/polybar/
+safe_cp "$SCRIPT_DIR/polybar/launch.sh" ~/.config/polybar/
+safe_cp "$SCRIPT_DIR/rofi/config.rasi" ~/.config/rofi/
+safe_cp "$SCRIPT_DIR/rofi/themes/rofi.rasi" ~/.config/rofi/themes/
+safe_cp "$SCRIPT_DIR/sxhkd/sxhkdrc" ~/.config/sxhkd/
 
-chmod +x ~/.config/bspwm/bspwmrc
-chmod +x ~/.config/polybar/launch.sh
+chmod +x ~/.config/bspwm/bspwmrc 2>/dev/null || true
+chmod +x ~/.config/polybar/launch.sh 2>/dev/null || true
 
-# ----------------------------
+# ============================
 # .xinitrc
-# ----------------------------
+# ============================
 echo "[+] Creating .xinitrc..."
 
 cat <<EOF > ~/.xinitrc
@@ -128,10 +154,36 @@ EOF
 
 chmod +x ~/.xinitrc
 
-# ----------------------------
-# Final message
-# ----------------------------
+# ============================
+# FINAL REPORT
+# ============================
+echo ""
 echo "=================================="
-echo "[✔] INSTALLATION COMPLETE!"
+echo " INSTALLATION SUMMARY"
+echo "=================================="
+
+if [ ${#FAILED_PACKAGES[@]} -eq 0 ] && [ ${#FAILED_FILES[@]} -eq 0 ]; then
+    echo "[✔] ALL INSTALLED SUCCESSFULLY"
+else
+    echo "[!] Some items failed:"
+    echo ""
+
+    if [ ${#FAILED_PACKAGES[@]} -ne 0 ]; then
+        echo "Failed Packages:"
+        for p in "${FAILED_PACKAGES[@]}"; do
+            echo " - $p"
+        done
+    fi
+
+    if [ ${#FAILED_FILES[@]} -ne 0 ]; then
+        echo ""
+        echo "Failed Files:"
+        for f in "${FAILED_FILES[@]}"; do
+            echo " - $f"
+        done
+    fi
+fi
+
+echo ""
 echo "Run: startx"
 echo "=================================="

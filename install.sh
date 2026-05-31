@@ -7,30 +7,30 @@
 FAILED_PACKAGES=()
 FAILED_FILES=()
 
-# ============================
-# AUTO PERMISSION FIX
-# ============================
 SCRIPT_PATH="$(realpath "$0")"
 chmod +x "$SCRIPT_PATH" 2>/dev/null || true
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+WALLPAPER="$HOME/Pictures/wallpapers/Debian.jpg"
 
 echo "=================================="
 echo "   BSPWM SMART SAFE INSTALLER"
 echo "=================================="
 
 # ============================
-# FUNCTION: INSTALL PACKAGE SAFELY
+# INSTALL FUNCTION
 # ============================
 check_install() {
     PKG=$1
+    EXTRA=${2:-}
 
     if dpkg -l | grep -q " $PKG "; then
         echo "[✔] $PKG already installed"
     else
         echo "[+] Installing $PKG ..."
 
-        if sudo apt install -y "$PKG"; then
+        if sudo apt install -y $EXTRA "$PKG"; then
             echo "[✔] Installed: $PKG"
         else
             echo "[✘] FAILED: $PKG"
@@ -40,7 +40,7 @@ check_install() {
 }
 
 # ============================
-# FUNCTION: SAFE COPY
+# SAFE COPY
 # ============================
 safe_cp() {
     SRC=$1
@@ -69,19 +69,33 @@ for pkg in \
     bspwm sxhkd polybar picom rofi alacritty feh \
     brightnessctl alsa-utils pulseaudio pavucontrol \
     xorg xinit lxappearance papirus-icon-theme \
-    fonts-font-awesome fonts-inter curl git unzip x11-xserver-utils
+    fonts-font-awesome fonts-inter curl git unzip x11-xserver-utils \
+    libinput-tools
 do
     check_install "$pkg"
 done
 
 # ============================
-# THUNAR MINIMAL
+# TOUCHPAD CONFIG
 # ============================
-echo "[+] Installing Thunar..."
+echo "[+] Configuring touchpad..."
 
-for pkg in thunar thunar-volman gvfs udisks2; do
-    check_install "$pkg"
-done
+sudo mkdir -p /etc/X11/xorg.conf.d 2>/dev/null || true
+
+sudo tee /etc/X11/xorg.conf.d/30-touchpad.conf >/dev/null <<EOF
+Section "InputClass"
+    Identifier "Touchpad"
+    MatchIsTouchpad "on"
+    Driver "libinput"
+
+    Option "Tapping" "on"
+    Option "NaturalScrolling" "true"
+    Option "DisableWhileTyping" "true"
+    Option "ClickMethod" "clickfinger"
+EndSection
+EOF
+
+echo "[✔] Touchpad config applied"
 
 # ============================
 # BRAVE BROWSER
@@ -91,12 +105,12 @@ echo "[+] Installing Brave..."
 if ! command -v brave-browser >/dev/null; then
     sudo apt install -y curl
 
-    sudo curl -fsSLo /usr/share/keyrings/brave-browser-archive-keyring.gpg \
+    sudo curl -fsSLo /usr/share/keyrings/brave-browser.gpg \
     https://brave-browser-apt-release.s3.brave.com/brave-browser-archive-keyring.gpg
 
-    echo "deb [signed-by=/usr/share/keyrings/brave-browser-archive-keyring.gpg] \
+    echo "deb [signed-by=/usr/share/keyrings/brave-browser.gpg] \
     https://brave-browser-apt-release.s3.brave.com/ stable main" | \
-    sudo tee /etc/apt/sources.list.d/brave-browser-release.list
+    sudo tee /etc/apt/sources.list.d/brave.list
 
     sudo apt update
     sudo apt install -y brave-browser || FAILED_PACKAGES+=("brave-browser")
@@ -105,26 +119,64 @@ else
 fi
 
 # ============================
-# FONTS
+# 🔥 FONTS (FIXED + SAFE)
 # ============================
-echo "[+] Installing Nerd Fonts..."
+echo "[+] Installing fonts safely..."
 
 mkdir -p "$HOME/.local/share/fonts"
-cd /tmp
+cd /tmp || exit
 
+# ----------------------------
+# JetBrains Mono
+# ----------------------------
+echo "[+] JetBrains Mono..."
 wget -q -O JetBrainsMono.zip \
-https://github.com/ryanoasis/nerd-fonts/releases/latest/download/JetBrainsMono.zip
+https://download.jetbrains.com/fonts/JetBrainsMono-2.304.zip
 
+unzip -oq JetBrainsMono.zip -d JetBrainsMono
+cp JetBrainsMono/fonts/ttf/*.ttf "$HOME/.local/share/fonts/" 2>/dev/null || true
+
+# ----------------------------
+# FiraCode Nerd Font (FIXED)
+# ----------------------------
+echo "[+] FiraCode Nerd Font..."
 wget -q -O FiraCode.zip \
 https://github.com/ryanoasis/nerd-fonts/releases/latest/download/FiraCode.zip
 
-unzip -oq JetBrainsMono.zip -d "$HOME/.local/share/fonts/JetBrainsMono"
-unzip -oq FiraCode.zip -d "$HOME/.local/share/fonts/FiraCode"
+mkdir -p FiraCodeTemp
+unzip -oq FiraCode.zip -d FiraCodeTemp
 
+find FiraCodeTemp -name "*.ttf" -exec cp {} "$HOME/.local/share/fonts/" \;
+
+# ----------------------------
+# MesloLGS NF
+# ----------------------------
+echo "[+] MesloLGS NF..."
+wget -q -O Meslo-Regular.ttf \
+https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20Regular.ttf
+
+wget -q -O Meslo-Bold.ttf \
+https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20Bold.ttf
+
+wget -q -O Meslo-Italic.ttf \
+https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20Italic.ttf
+
+wget -q -O Meslo-BoldItalic.ttf \
+https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20Bold%20Italic.ttf
+
+cp Meslo*.ttf "$HOME/.local/share/fonts/" 2>/dev/null || true
+
+# ----------------------------
+# Refresh font cache
+# ----------------------------
 fc-cache -fv
 
+cd - >/dev/null || true
+
+echo "[✔] Fonts installed successfully"
+
 # ============================
-# CONFIG COPY (SAFE MODE)
+# CONFIG COPY
 # ============================
 echo "[+] Copying configs..."
 
@@ -143,47 +195,59 @@ chmod +x ~/.config/bspwm/bspwmrc 2>/dev/null || true
 chmod +x ~/.config/polybar/launch.sh 2>/dev/null || true
 
 # ============================
+# PULSEAUDIO
+# ============================
+pulseaudio --start 2>/dev/null || true
+
+# ============================
 # .xinitrc
 # ============================
-echo "[+] Creating .xinitrc..."
-
-cat <<EOF > ~/.xinitrc
+cat > ~/.xinitrc <<EOF
 #!/bin/sh
+pulseaudio --start &
 exec bspwm
 EOF
 
 chmod +x ~/.xinitrc
 
 # ============================
-# FINAL REPORT
+# WALLPAPER SETUP
+# ============================
+echo "[+] Setting wallpaper..."
+
+mkdir -p ~/Pictures/wallpapers
+
+if [ -f "$WALLPAPER" ]; then
+    feh --bg-fill "$WALLPAPER" &
+    echo "[✔] Wallpaper applied"
+else
+    echo "[!] Wallpaper not found"
+    feh --bg-fill ~/Pictures/wallpapers/* 2>/dev/null || true
+fi
+
+# ============================
+# FINAL + REBOOT
 # ============================
 echo ""
 echo "=================================="
-echo " INSTALLATION SUMMARY"
+echo " INSTALL COMPLETE"
 echo "=================================="
-
-if [ ${#FAILED_PACKAGES[@]} -eq 0 ] && [ ${#FAILED_FILES[@]} -eq 0 ]; then
-    echo "[✔] ALL INSTALLED SUCCESSFULLY"
-else
-    echo "[!] Some items failed:"
-    echo ""
-
-    if [ ${#FAILED_PACKAGES[@]} -ne 0 ]; then
-        echo "Failed Packages:"
-        for p in "${FAILED_PACKAGES[@]}"; do
-            echo " - $p"
-        done
-    fi
-
-    if [ ${#FAILED_FILES[@]} -ne 0 ]; then
-        echo ""
-        echo "Failed Files:"
-        for f in "${FAILED_FILES[@]}"; do
-            echo " - $f"
-        done
-    fi
-fi
+echo "✔ BSPWM ready"
+echo "✔ Fonts installed safely"
+echo "✔ System configured"
+echo "=================================="
 
 echo ""
-echo "Run: startx"
-echo "=================================="
+echo "SYSTEM REBOOT INITIATED"
+echo ""
+
+for i in 1 2 3 4 5; do
+    echo -ne "Reboot in... [$i]\r"
+    sleep 1
+done
+
+echo ""
+echo "[✔] Rebooting..."
+
+sync
+sudo reboot

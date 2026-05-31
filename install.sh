@@ -195,6 +195,33 @@ chmod +x ~/.config/bspwm/bspwmrc 2>/dev/null || true
 chmod +x ~/.config/polybar/launch.sh 2>/dev/null || true
 
 # ============================
+# GTK THEMES
+# ============================
+echo "[+] Installing GTK themes..."
+
+mkdir -p "$HOME/.themes"
+
+# Nordic Theme
+if [ ! -d "$HOME/.themes/Nordic" ]; then
+    echo "[+] Installing Nordic..."
+    git clone https://github.com/EliverLara/Nordic.git \
+    "$HOME/.themes/Nordic" || FAILED_FILES+=("Nordic Theme")
+else
+    echo "[✔] Nordic already installed"
+fi
+
+# Dracula Theme
+if [ ! -d "$HOME/.themes/Dracula" ]; then
+    echo "[+] Installing Dracula..."
+    git clone https://github.com/dracula/gtk.git \
+    "$HOME/.themes/Dracula" || FAILED_FILES+=("Dracula Theme")
+else
+    echo "[✔] Dracula already installed"
+fi
+
+echo "[✔] GTK themes installed"
+
+# ============================
 # PULSEAUDIO
 # ============================
 pulseaudio --start 2>/dev/null || true

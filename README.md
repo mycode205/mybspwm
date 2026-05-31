@@ -32,7 +32,7 @@ A fully automated installation script to deploy a clean, fast, and keyboard-driv
 
 ### Alacritty
 
-<img src="screenshots/terminal.png" width="100%">
+<img src="screenshots/Alacritty.png" width="100%">
 
 
 #----------------- Installation

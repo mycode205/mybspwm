@@ -196,6 +196,27 @@ safe_cp "$SCRIPT_DIR/sxhkd/sxhkdrc" ~/.config/sxhkd/
 chmod +x ~/.config/bspwm/bspwmrc 2>/dev/null || true
 chmod +x ~/.config/polybar/launch.sh 2>/dev/null || true
 
+
+# ============================
+# FASTFETCH SETUP
+# ============================
+echo "[+] Configuring Fastfetch..."
+
+touch "$HOME/.bashrc"
+
+if ! grep -q "fastfetch" "$HOME/.bashrc"; then
+cat >> "$HOME/.bashrc" <<'EOF'
+
+# Fastfetch
+if command -v fastfetch >/dev/null 2>&1; then
+    fastfetch
+fi
+EOF
+fi
+
+echo "[✔] Fastfetch configured"
+
+
 # ============================
 # GTK THEMES
 # ============================

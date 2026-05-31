@@ -1,27 +1,35 @@
 # 🛠️ MyBSPWM: Automated BSPWM Desktop Environment Setup
 
-An automated installation script to deploy a fully configured, keyboard-driven BSPWM (Binary Space Partitioning Window Manager) environment. This script handles everything from base dependencies to final aesthetics, giving you a beautiful, functional desktop out of the box.
+A fully automated installation script to deploy a clean, fast, and keyboard-driven BSPWM (Binary Space Partitioning Window Manager) environment on Debian/Ubuntu systems.
 
 ---
 
 ## ✨ Features
 
-* **Zero to Hero:** Automated setup goes from a bare TTY to a fully functioning desktop environment.
-* **Optimized Hotkeys:** Pre-configured `sxhkd` shortcuts for seamless, keyboard-driven window management.
-* **Modern Aesthetics:** Clean bar configurations, customized application launchers, and matching terminal themes.
-* **Safe Execution:** The installation script checks for prerequisites before making changes.
+- 🚀 One-command full desktop setup
+- 🪟 BSPWM tiling window manager
+- ⌨️ Pre-configured sxhkd keybindings
+- 📊 Polybar setup included
+- 🎨 Rofi launcher integration
+- 🌙 Picom compositor (visual effects)
+- 🔤 Nerd Fonts support (JetBrainsMono + FiraCode)
+- 🌐 Brave browser auto install
+- 📁 Thunar minimal file manager setup
+- 🖥️ HDMI-ready xrandr configuration support
 
 ---
 
-## 🚀 Quick Start / One-Liner Install
+## 🚀 Installation
 
-If you want to jump straight in, open your terminal and run the following commands:
+### 📦 Option 1: Git Clone (Recommended)
 
 ```bash
-==================================
-INSTALL COMMAND
-==================================
-
 git clone https://github.com/mycode205/mybspwm.git
 cd mybspwm
-sudo ./install.sh
+bash install.sh
+
+
+### 📦 Option 2: Git Clone 
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/mycode205/mybspwm/main/install.sh | bash

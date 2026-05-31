@@ -24,7 +24,7 @@ A fully automated installation script to deploy a clean, fast, and keyboard-driv
 
 ### Desktop Preview
 
-<img src="screenshots/Desktop.jpg" width="100%">
+<img src="screenshots/Desktop.png" width="100%">
 
 ### Rofi Launcher
 

@@ -229,27 +229,39 @@ pulseaudio --start 2>/dev/null || true
 # ============================
 # .xinitrc
 # ============================
-cat > ~/.xinitrc <<EOF
+cat > "$HOME/.xinitrc" <<EOF
 #!/bin/sh
 pulseaudio --start &
 exec bspwm
 EOF
 
-chmod +x ~/.xinitrc
+chmod +x "$HOME/.xinitrc"
+
+# ============================
+# AUTO START X ON TTY1
+# ============================
+echo "[+] Configuring auto start BSPWM..."
+
+cat > "$HOME/.bash_profile" <<'EOF'
+if [ -z "$DISPLAY" ] && [ "$(tty)" = "/dev/tty1" ]; then
+    exec startx
+fi
+EOF
+
+echo "[✔] Auto-start configured"
 
 # ============================
 # WALLPAPER SETUP
 # ============================
 echo "[+] Setting wallpaper..."
 
-mkdir -p ~/Pictures/wallpapers
+mkdir -p "$HOME/Pictures/wallpapers"
 
 if [ -f "$WALLPAPER" ]; then
     feh --bg-fill "$WALLPAPER" &
     echo "[✔] Wallpaper applied"
 else
     echo "[!] Wallpaper not found"
-    feh --bg-fill ~/Pictures/wallpapers/* 2>/dev/null || true
 fi
 
 # ============================
@@ -260,15 +272,28 @@ echo "=================================="
 echo " INSTALL COMPLETE"
 echo "=================================="
 echo "✔ BSPWM ready"
-echo "✔ Fonts installed safely"
-echo "✔ System configured"
+echo "✔ Fonts installed"
+echo "✔ GTK themes installed"
+echo "✔ Auto-start configured"
 echo "=================================="
+
+if [ ${#FAILED_PACKAGES[@]} -gt 0 ]; then
+    echo ""
+    echo "Failed Packages:"
+    printf ' - %s\n' "${FAILED_PACKAGES[@]}"
+fi
+
+if [ ${#FAILED_FILES[@]} -gt 0 ]; then
+    echo ""
+    echo "Failed Files:"
+    printf ' - %s\n' "${FAILED_FILES[@]}"
+fi
 
 echo ""
 echo "SYSTEM REBOOT INITIATED"
 echo ""
 
-for i in 1 2 3 4 5; do
+for i in 5 4 3 2 1; do
     echo -ne "Reboot in... [$i]\r"
     sleep 1
 done

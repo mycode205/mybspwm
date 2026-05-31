@@ -26,5 +26,6 @@ bspc config gapless_monocle      true
 # Autostart
 #feh --bg-fill ~/Pictures/wallpapers/Debian.jpg
 ~/.fehbg &
+feh --bg-fill "$HOME/Pictures/wallpapers/Debian.jpg" &
 picom &
 polybar main &

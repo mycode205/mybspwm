@@ -254,16 +254,14 @@ echo "[✔] Auto-start configured"
 # ============================
 # WALLPAPER SETUP
 # ============================
-echo "[+] Setting wallpaper..."
+echo "[+] Installing wallpaper..."
 
 mkdir -p "$HOME/Pictures/wallpapers"
 
-if [ -f "$WALLPAPER" ]; then
-    feh --bg-fill "$WALLPAPER" &
-    echo "[✔] Wallpaper applied"
-else
-    echo "[!] Wallpaper not found"
-fi
+safe_cp "$SCRIPT_DIR/wallpapers/Debian.jpg" \
+"$HOME/Pictures/wallpapers/Debian.jpg"
+
+echo "[✔] Wallpaper installed"
 
 # ============================
 # FINAL + REBOOT

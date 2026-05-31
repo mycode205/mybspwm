@@ -69,6 +69,7 @@ for pkg in \
     bspwm sxhkd polybar picom rofi alacritty feh \
     brightnessctl alsa-utils pulseaudio pavucontrol \
     xorg xinit lxappearance papirus-icon-theme \
+    breeze-icon-theme bibata-cursor-theme \
     fonts-font-awesome fonts-inter curl git unzip x11-xserver-utils \
     libinput-tools
 do

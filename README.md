@@ -19,6 +19,22 @@ A fully automated installation script to deploy a clean, fast, and keyboard-driv
 
 ---
 
+
+# My BSPWM Setup
+
+### Desktop Preview
+
+<img src="screenshots/Desktop.jpg" width="100%">
+
+### Rofi Launcher
+
+<img src="screenshots/rofi.png" width="100%">
+
+### Alacritty
+
+<img src="screenshots/terminal.png" width="100%">
+
+
 #----------------- Installation
 #------ Option 1: Git Clone (Recommended)
 ```bash

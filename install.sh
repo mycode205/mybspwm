@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ============================
-# SAFE INSTALL MODE (NO EXIT ON ERROR)
+# SAFE INSTALL MODE 
 # ============================
 
 FAILED_PACKAGES=()

@@ -202,11 +202,11 @@ super + b
 #=========================================================
 
 # Swap Windows (Vim Keys)
-super + shift + {h,j,k,l}
+super + ctrl + {h,j,k,l}
     bspc node -s {west,south,north,east}
 
 # Swap Windows (Arrow Keys)
-super + shift + {Left,Down,Up,Right}
+super + ctrl + {Left,Down,Up,Right}
     bspc node -s {west,south,north,east}
 
 

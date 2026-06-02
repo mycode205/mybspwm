@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ============================
-# SAFE INSTALL MODE 
+# INSTALL MODE 
 # ============================
 
 FAILED_PACKAGES=()
@@ -40,7 +40,7 @@ check_install() {
 }
 
 # ============================
-# SAFE COPY
+#  COPY
 # ============================
 safe_cp() {
     SRC=$1
@@ -120,7 +120,7 @@ else
 fi
 
 # ============================
-# 🔥 FONTS (FIXED + SAFE)
+#  FONTS 
 # ============================
 echo "[+] Installing fonts safely..."
 

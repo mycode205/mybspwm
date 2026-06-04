@@ -148,7 +148,7 @@ done
 # ==================================
 if [ -f "$SCRIPT_DIR/filemanager.sh" ]; then
     chmod +x "$SCRIPT_DIR/filemanager.sh"
-    "$SCRIPT_DIR/filemanager.sh"
+    "$SCRIPT_DIR/scripts/filemanager.sh"
 else
     echo "[✘] ERROR: filemanager.sh not found in $SCRIPT_DIR"
     FAILED_FILES+=("filemanager.sh script missing")
@@ -159,7 +159,7 @@ fi
 # ==================================
 if [ -f "$SCRIPT_DIR/terminal.sh" ]; then
     chmod +x "$SCRIPT_DIR/terminal.sh"
-    "$SCRIPT_DIR/terminal.sh"
+    "$SCRIPT_DIR/scripts/terminal.sh"
 else
     echo "[✘] ERROR: terminal.sh not found in $SCRIPT_DIR"
     FAILED_FILES+=("terminal.sh script missing")
@@ -168,11 +168,12 @@ fi
 # ==================================
 # INTERACTIVE BROWSER MENU
 # ==================================
-if [ -f "$SCRIPT_DIR/browser.sh" ]; then
-    chmod +x "$SCRIPT_DIR/browser.sh"
-    "$SCRIPT_DIR/browser.sh"
+
+if [ -f "$SCRIPTS_SUBDIR/browser.sh" ]; then
+    chmod +x "$SCRIPTS_SUBDIR/browser.sh"
+    "$SCRIPTS_SUBDIR/browser.sh"
 else
-    echo "[✘] ERROR: browser.sh not found in $SCRIPT_DIR"
+    echo "[✘] ERROR: browser.sh not found in $SCRIPTS_SUBDIR"
     FAILED_FILES+=("browser.sh script missing")
 fi
 

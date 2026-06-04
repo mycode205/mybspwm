@@ -11,6 +11,7 @@ SCRIPT_PATH="$(realpath "$0")"
 chmod +x "$SCRIPT_PATH" 2>/dev/null || true
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPTS_SUBDIR="$SCRIPT_DIR/scripts"
 
 WALLPAPER="$HOME/Pictures/wallpapers/Debian.jpg"
 
@@ -168,7 +169,6 @@ fi
 # ==================================
 # INTERACTIVE BROWSER MENU
 # ==================================
-
 if [ -f "$SCRIPTS_SUBDIR/browser.sh" ]; then
     chmod +x "$SCRIPTS_SUBDIR/browser.sh"
     "$SCRIPTS_SUBDIR/browser.sh"

@@ -147,22 +147,22 @@ done
 # ==================================
 # INTERACTIVE FILE MANAGER MENU
 # ==================================
-if [ -f "$SCRIPT_DIR/filemanager.sh" ]; then
-    chmod +x "$SCRIPT_DIR/filemanager.sh"
-    "$SCRIPT_DIR/scripts/filemanager.sh"
+if [ -f "$SCRIPTS_SUBDIR/filemanager.sh" ]; then
+    chmod +x "$SCRIPTS_SUBDIR/filemanager.sh"
+    "$SCRIPTS_SUBDIR/filemanager.sh"
 else
-    echo "[✘] ERROR: filemanager.sh not found in $SCRIPT_DIR"
+    echo "[✘] ERROR: filemanager.sh not found in $SCRIPTS_SUBDIR"
     FAILED_FILES+=("filemanager.sh script missing")
 fi
 
 # ==================================
 # INTERACTIVE TERMINAL MENU
 # ==================================
-if [ -f "$SCRIPT_DIR/terminal.sh" ]; then
-    chmod +x "$SCRIPT_DIR/terminal.sh"
-    "$SCRIPT_DIR/scripts/terminal.sh"
+if [ -f "$SCRIPTS_SUBDIR/terminal.sh" ]; then
+    chmod +x "$SCRIPTS_SUBDIR/terminal.sh"
+    "$SCRIPTS_SUBDIR/terminal.sh"
 else
-    echo "[✘] ERROR: terminal.sh not found in $SCRIPT_DIR"
+    echo "[✘] ERROR: terminal.sh not found in $SCRIPTS_SUBDIR"
     FAILED_FILES+=("terminal.sh script missing")
 fi
 

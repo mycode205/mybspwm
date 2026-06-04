@@ -76,6 +76,19 @@ do
     check_install "$pkg"
 done
 
+# ==================================
+# INTERACTIVE FILE MANAGER MENU
+# ==================================
+echo "[+] Opening File Manager Selection..."
+
+if [ -f "$SCRIPT_DIR/filemanager.sh" ]; then
+    chmod +x "$SCRIPT_DIR/filemanager.sh"
+    "$SCRIPT_DIR/filemanager.sh"
+else
+    echo "[✘] ERROR: filemanager.sh not found in $SCRIPT_DIR"
+    FAILED_FILES+=("filemanager.sh script missing")
+fi
+
 # ============================
 # TOUCHPAD CONFIG
 # ============================
@@ -255,7 +268,7 @@ pulseaudio --start 2>/dev/null || true
 cat > "$HOME/.xinitrc" <<EOF
 #!/bin/sh
 pulseaudio --start &
-exec bspwm
+exec dbus-launch --sh-syntax --exit-with-session bspwm
 EOF
 
 chmod +x "$HOME/.xinitrc"

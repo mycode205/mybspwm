@@ -16,37 +16,64 @@ SCRIPTS_SUBDIR="$SCRIPT_DIR/scripts"
 WALLPAPER="$HOME/Pictures/wallpapers/Debian.jpg"
 
 # ============================
-# COOL COLORFUL UI FUNCTION
+# IMPROVED COOL COLORFUL UI
 # ============================
 show_status() {
     local task_name="$1"
     local status_type="$2" # "RUN", "SUCCESS", "FAIL", "REBOOT"
     local percent="${3:-0}"
     
-    # ANSI Color Codes (Nord Palette Inspired)
+    # ANSI Color Codes (Nord Palette)
+    local NORD_BG="\033[43m"
+    local NORD_POLAR="\033[1;30m"
     local NORD_BLUE="\033[1;36m"
     local NORD_GREEN="\033[1;32m"
     local NORD_RED="\033[1;31m"
     local NORD_YELLOW="\033[1;33m"
+    local BOLD="\033[1;37m"
     local RESET="\033[0m"
+
+    # Frame dimensions
+    local terminal_width=60
 
     case "$status_type" in
         "RUN")
             clear
+            # Calculate progress bar fill
+            local bar_width=38
+            local filled_chars=$(( (percent * bar_width) / 100 ))
+            local empty_chars=$(( bar_width - filled_chars ))
+            
+            # Construct the smooth progress line
+            local progress_line=""
+            if [ $filled_chars -gt 0 ]; then
+                progress_line+=$(printf '━%.0s' $(seq 1 $filled_chars))
+            fi
+            if [ $empty_chars -gt 0 ]; then
+                progress_line+=$(printf '─%.0s' $(seq 1 $empty_chars))
+            fi
+
+            # Format the Big Bold Percentage Readout
+            local pct_text="[ ${percent}% ]"
+            
             echo -e "${NORD_BLUE}╭──────────────────────────────────────────────────────────╮${RESET}"
-            echo -e "${NORD_BLUE}│${RESET}  [ 󱑤 ] Downloading & Installing...         [ ${percent}% ]     ${NORD_BLUE}│${RESET}"
+            printf "${NORD_BLUE}│${RESET}  ${BOLD}%-38s${RESET}   ${NORD_BLUE}%13s │\n" "DOWNLOADING & INSTALLING" "$pct_text"
             echo -e "${NORD_BLUE}├──────────────────────────────────────────────────────────┤${RESET}"
-            printf "${NORD_BLUE}│${RESET}  ➜ %-52s ${NORD_BLUE}│\n" "$task_name"
+            printf "${NORD_BLUE}│${RESET}  ${NORD_BLUE}➜ ${RESET}%-51s ${NORD_BLUE}│\n" "$task_name"
+            printf "${NORD_BLUE}│${RESET}  ${NORD_BLUE}%s${RESET}  ${NORD_BLUE}│\n" "$progress_line"
             echo -e "${NORD_BLUE}╰──────────────────────────────────────────────────────────╯${RESET}"
             ;;
+            
         "SUCCESS")
             echo -e "     ${NORD_GREEN}✔ Successfully Processed${RESET}\n"
-            sleep 0.2
+            sleep 0.15
             ;;
+            
         "FAIL")
             echo -e "     ${NORD_RED}✘ Installation Failed${RESET}\n"
             sleep 1
             ;;
+            
         "REBOOT")
             clear
             echo -e "${NORD_YELLOW}╭──────────────────────────────────────────────────────────╮${RESET}"

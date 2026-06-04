@@ -81,14 +81,11 @@ check_install() {
         echo "[✔] $PKG already installed"
         sleep 0.05
     else
-        # Show an initial loading screen at 0%
         show_status "$PKG" "RUN" "0"
 
-        # Run installation silently in the background
         sudo apt install -y $EXTRA "$PKG" >/dev/null 2>&1 &
         local pid=$!
 
-        # Smoothly fake the percentage counting while package actually installs
         local current_pct=0
         while kill -0 $pid 2>/dev/null; do
             if [ $current_pct -lt 95 ]; then
@@ -98,7 +95,6 @@ check_install() {
             sleep 0.1
         done
 
-        # Wait for the background process to exit completely to catch error codes
         wait $pid
         if [ $? -eq 0 ]; then
             show_status "$PKG" "RUN" "100"
@@ -137,7 +133,7 @@ show_status "System update complete" "SUCCESS"
 # CORE PACKAGES
 # ============================
 for pkg in \
-    bspwm sxhkd polybar picom rofi alacritty feh \
+    bspwm sxhkd polybar picom rofi feh \
     brightnessctl alsa-utils pulseaudio pavucontrol \
     xorg xinit lxappearance papirus-icon-theme \
     breeze-icon-theme bibata-cursor-theme fastfetch flameshot \
@@ -156,6 +152,28 @@ if [ -f "$SCRIPT_DIR/filemanager.sh" ]; then
 else
     echo "[✘] ERROR: filemanager.sh not found in $SCRIPT_DIR"
     FAILED_FILES+=("filemanager.sh script missing")
+fi
+
+# ==================================
+# INTERACTIVE TERMINAL MENU
+# ==================================
+if [ -f "$SCRIPT_DIR/terminal.sh" ]; then
+    chmod +x "$SCRIPT_DIR/terminal.sh"
+    "$SCRIPT_DIR/terminal.sh"
+else
+    echo "[✘] ERROR: terminal.sh not found in $SCRIPT_DIR"
+    FAILED_FILES+=("terminal.sh script missing")
+fi
+
+# ==================================
+# INTERACTIVE BROWSER MENU
+# ==================================
+if [ -f "$SCRIPT_DIR/browser.sh" ]; then
+    chmod +x "$SCRIPT_DIR/browser.sh"
+    "$SCRIPT_DIR/browser.sh"
+else
+    echo "[✘] ERROR: browser.sh not found in $SCRIPT_DIR"
+    FAILED_FILES+=("browser.sh script missing")
 fi
 
 # ============================
@@ -177,23 +195,6 @@ Section "InputClass"
 EndSection
 EOF
 show_status "Touchpad configuration" "SUCCESS"
-
-# ============================
-# BRAVE BROWSER
-# ============================
-if ! command -v brave-browser >/dev/null; then
-    show_status "Adding Brave Browser repository & keys" "RUN" "30"
-    sudo apt install -y curl >/dev/null 2>&1
-    sudo curl -fsSLo /usr/share/keyrings/brave-browser.gpg https://brave-browser-apt-release.s3.brave.com/brave-browser-archive-keyring.gpg >/dev/null 2>&1
-    echo "deb [signed-by=/usr/share/keyrings/brave-browser.gpg] https://brave-browser-apt-release.s3.brave.com/ stable main" | sudo tee /etc/apt/sources.list.d/brave.list >/dev/null 2>&1
-    sudo apt update >/dev/null 2>&1
-    show_status "Adding Brave Browser repository & keys" "RUN" "100"
-    
-    check_install "brave-browser"
-else
-    echo "[✔] Brave already installed"
-    sleep 0.2
-fi
 
 # ============================
 #  FONTS 
@@ -330,7 +331,6 @@ echo "=================================="
 echo "✔ All elements deployed correctly"
 echo "=================================="
 
-# Handle error readouts gracefully before execution ends
 if [ ${#FAILED_PACKAGES[@]} -gt 0 ] || [ ${#FAILED_FILES[@]} -gt 0 ]; then
     printf 'Errors found inside packages: %s\n' "${FAILED_PACKAGES[*]}"
     printf 'Errors found inside files: %s\n' "${FAILED_FILES[*]}"
@@ -339,7 +339,6 @@ if [ ${#FAILED_PACKAGES[@]} -gt 0 ] || [ ${#FAILED_FILES[@]} -gt 0 ]; then
 fi
 
 sync
-# Styled Dynamic Pill Reboot Block
 for i in 5 4 3 2 1; do
     show_status "" "REBOOT" "$i"
     sleep 1

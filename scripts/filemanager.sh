@@ -28,8 +28,15 @@ show_menu_status() {
 }
 
 install_dependencies() {
-    show_menu_status "Installing background filesystem layers" "RUN" "35"
+    # 1. Install and update XDG standard directories
+    show_menu_status "Installing and generating XDG user directories" "RUN" "15"
+    sudo apt install -y xdg-user-dirs >/dev/null 2>&1
+    xdg-user-dirs-update >/dev/null 2>&1
+
+    # 2. Install virtual filesystem layers
+    show_menu_status "Installing background filesystem layers" "RUN" "55"
     sudo apt install -y dbus-x11 gvfs gvfs-backends xdg-desktop-portal xdg-desktop-portal-gtk >/dev/null 2>&1
+    
     show_menu_status "Installing background filesystem layers" "RUN" "100"
     show_menu_status "Dependencies integrated" "SUCCESS"
 }

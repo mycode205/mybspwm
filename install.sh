@@ -85,7 +85,7 @@ show_status() {
     esac
 }
 
-# Animate progress safely
+# Animate progress safely (Pre-calculated sequence prevents blinking)
 animate_progress() {
     local task="$1"
     for p in 10 25 45 68 85 100; do
@@ -99,11 +99,11 @@ echo "   BSPWM SMART SAFE INSTALLER"
 echo "=================================="
 
 # ============================
-# INSTALL FUNCTION
+# INSTALL FUNCTION (FIXED FLICKER)
 # ============================
 check_install() {
-    PKG=$1
-    EXTRA=${2:-}
+    local PKG=$1
+    local EXTRA=${2:-}
 
     if dpkg -l | grep -q " $PKG "; then
         echo "[✔] $PKG already installed"
@@ -115,12 +115,21 @@ check_install() {
         local pid=$!
 
         local current_pct=0
+        local last_pct=0
+
         while kill -0 $pid 2>/dev/null; do
             if [ $current_pct -lt 95 ]; then
                 current_pct=$((current_pct + 5))
             fi
-            show_status "$PKG" "RUN" "$current_pct"
-            sleep 0.1
+            
+            # Only trigger 'clear' and redraw if the percentage actually changed
+            if [ "$current_pct" -ne "$last_pct" ]; then
+                show_status "$PKG" "RUN" "$current_pct"
+                last_pct=$current_pct
+            fi
+            
+            # Slower polling interval prevents terminal buffer thrashing
+            sleep 0.4
         done
 
         wait $pid
@@ -138,8 +147,8 @@ check_install() {
 #  COPY
 # ============================
 safe_cp() {
-    SRC=$1
-    DEST=$2
+    local SRC=$1
+    local DEST=$2
 
     if cp -f "$SRC" "$DEST" 2>/dev/null; then
         echo "[✔] Copied: $SRC"
@@ -228,54 +237,57 @@ show_status "Touchpad configuration" "SUCCESS"
 #  FONTS 
 # ============================
 mkdir -p "$HOME/.local/share/fonts"
-cd /tmp || exit
 
-# ----------------------------
-# JetBrains Mono
-# ----------------------------
-show_status "Downloading JetBrains Mono Fonts" "RUN" "30"
-if wget -q -O JetBrainsMono.zip https://download.jetbrains.com/fonts/JetBrainsMono-2.304.zip; then
-    show_status "Extracting JetBrains Mono Fonts" "RUN" "75"
-    unzip -oq JetBrainsMono.zip -d JetBrainsMono
-    cp JetBrainsMono/fonts/ttf/*.ttf "$HOME/.local/share/fonts/" 2>/dev/null || true
-    show_status "JetBrains Mono" "RUN" "100"
-    show_status "JetBrains Mono" "SUCCESS"
-else
-    show_status "JetBrains Mono Download" "FAIL"
-fi
+# Wrapping font operations safely inside a standalone block 
+(
+    cd /tmp || exit
+    
+    # ----------------------------
+    # JetBrains Mono
+    # ----------------------------
+    show_status "Downloading JetBrains Mono Fonts" "RUN" "30"
+    if wget -q -O JetBrainsMono.zip https://download.jetbrains.com/fonts/JetBrainsMono-2.304.zip; then
+        show_status "Extracting JetBrains Mono Fonts" "RUN" "75"
+        unzip -oq JetBrainsMono.zip -d JetBrainsMono
+        cp JetBrainsMono/fonts/ttf/*.ttf "$HOME/.local/share/fonts/" 2>/dev/null || true
+        show_status "JetBrains Mono" "RUN" "100"
+        show_status "JetBrains Mono" "SUCCESS"
+    else
+        show_status "JetBrains Mono Download" "FAIL"
+    fi
 
-# ----------------------------
-# FiraCode Nerd Font
-# ----------------------------
-show_status "Downloading FiraCode Nerd Font" "RUN" "25"
-if wget -q -O FiraCode.zip https://github.com/ryanoasis/nerd-fonts/releases/latest/download/FiraCode.zip; then
-    show_status "Extracting FiraCode Nerd Font" "RUN" "80"
-    mkdir -p FiraCodeTemp
-    unzip -oq FiraCode.zip -d FiraCodeTemp
-    find FiraCodeTemp -name "*.ttf" -exec cp {} "$HOME/.local/share/fonts/" \; >/dev/null 2>&1
-    show_status "FiraCode Nerd Font" "RUN" "100"
-    show_status "FiraCode Nerd Font" "SUCCESS"
-else
-    show_status "FiraCode Nerd Font Download" "FAIL"
-fi
+    # ----------------------------
+    # FiraCode Nerd Font
+    # ----------------------------
+    show_status "Downloading FiraCode Nerd Font" "RUN" "25"
+    if wget -q -O FiraCode.zip https://github.com/ryanoasis/nerd-fonts/releases/latest/download/FiraCode.zip; then
+        show_status "Extracting FiraCode Nerd Font" "RUN" "80"
+        mkdir -p FiraCodeTemp
+        unzip -oq FiraCode.zip -d FiraCodeTemp
+        find FiraCodeTemp -name "*.ttf" -exec cp {} "$HOME/.local/share/fonts/" \; >/dev/null 2>&1
+        show_status "FiraCode Nerd Font" "RUN" "100"
+        show_status "FiraCode Nerd Font" "SUCCESS"
+    else
+        show_status "FiraCode Nerd Font Download" "FAIL"
+    fi
 
-# ----------------------------
-# MesloLGS NF
-# ----------------------------
-show_status "Downloading MesloLGS NF Fonts" "RUN" "20"
-wget -q -O Meslo-Regular.ttf https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20Regular.ttf
-show_status "Downloading MesloLGS NF Fonts" "RUN" "50"
-wget -q -O Meslo-Bold.ttf https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20Bold.ttf
-show_status "Downloading MesloLGS NF Fonts" "RUN" "75"
-wget -q -O Meslo-Italic.ttf https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20Italic.ttf
-wget -q -O Meslo-BoldItalic.ttf https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20Bold%20Italic.ttf
+    # ----------------------------
+    # MesloLGS NF
+    # ----------------------------
+    show_status "Downloading MesloLGS NF Fonts" "RUN" "20"
+    wget -q -O Meslo-Regular.ttf https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20Regular.ttf
+    show_status "Downloading MesloLGS NF Fonts" "RUN" "50"
+    wget -q -O Meslo-Bold.ttf https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20Bold.ttf
+    show_status "Downloading MesloLGS NF Fonts" "RUN" "75"
+    wget -q -O Meslo-Italic.ttf https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20Italic.ttf
+    wget -q -O Meslo-BoldItalic.ttf https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20Bold%20Italic.ttf
 
-cp Meslo*.ttf "$HOME/.local/share/fonts/" 2>/dev/null || true
-show_status "MesloLGS NF Fonts" "RUN" "100"
-show_status "MesloLGS NF Fonts" "SUCCESS"
+    cp Meslo*.ttf "$HOME/.local/share/fonts/" 2>/dev/null || true
+    show_status "MesloLGS NF Fonts" "RUN" "100"
+    show_status "MesloLGS NF Fonts" "SUCCESS"
 
-fc-cache -f >/dev/null 2>&1
-cd - >/dev/null || true
+    fc-cache -f >/dev/null 2>&1
+)
 
 # ============================
 # CONFIG COPY

@@ -11,9 +11,9 @@ echo "========================================================"
 echo "==> Starting Automated Network & Polybar Integration..."
 echo "========================================================"
 
-# Step 1: Install System Dependencies
-echo "==> Installing NetworkManager and Applet dependencies..."
-sudo apt update
+# Step 1: Install System Dependencies Safely
+echo "==> Checking/Installing NetworkManager and Applet dependencies..."
+# Removed 'apt update' to prevent network timeout failures at the end of the script
 sudo apt install -y network-manager network-manager-gnome
 
 # Step 2: Fix Services & Permissions (Crucial to prevent device locks)
@@ -25,21 +25,21 @@ echo "==> Ensuring NetworkManager has management permissions..."
 if [ -f /etc/NetworkManager/NetworkManager.conf ]; then
     sudo sed -i 's/managed=false/managed=true/g' /etc/NetworkManager/NetworkManager.conf
 fi
-sudo systemctl enable NetworkManager
-sudo systemctl restart NetworkManager
+sudo systemctl enable NetworkManager || true
+sudo systemctl restart NetworkManager || true
 
 # Step 3: Automatically Configure bspwmrc
 echo "==> Injecting nm-applet background process into bspwmrc..."
 if [ -f "$BSPWM_CONF" ]; then
-    # Safely wrap grep to prevent set -e from tripping on structural mismatches
-    if ! grep -q "nm-applet" "$BSPWM_CONF" 2>/dev/null; then
+    # Wrapped check protects against set -e tracking non-zero match flags
+    if grep -q "nm-applet" "$BSPWM_CONF" 2>/dev/null; then
+        echo "nm-applet configuration already exists in bspwmrc. Skipping."
+    else
         # Append to the end of bspwmrc
         echo "" >> "$BSPWM_CONF"
         echo "# Network management tray applet" >> "$BSPWM_CONF"
         echo "pgrep -x nm-applet > /dev/null || nm-applet &" >> "$BSPWM_CONF"
         echo "Successfully added nm-applet to $BSPWM_CONF"
-    else
-        echo "nm-applet configuration already exists in bspwmrc. Skipping."
     fi
 else
     echo "Warning: bspwmrc not found at $BSPWM_CONF. Please check path."
@@ -55,7 +55,6 @@ if [ -f "$POLYBAR_CONF" ]; then
     # 1. Automatically update modules-right line safely
     if grep -E -q "modules-right[[:space:]]*=" "$POLYBAR_CONF" 2>/dev/null; then
         
-        # Wrapped check protects against set -e tracking non-zero match flags
         if grep -q "systray" "$POLYBAR_CONF" 2>/dev/null; then
             echo "Modules already found in modules-right line. Skipping injection."
         else

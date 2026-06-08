@@ -294,20 +294,20 @@ mkdir -p "$HOME/.local/share/fonts"
 # ============================
 clear
 echo "[+] Copying configs..."
-mkdir -p ~/.config/{alacritty,fastfetch,bspwm,picom,polybar,rofi/themes,sxhkd}
+mkdir -p "$HOME/.config"/{alacritty,fastfetch,bspwm,picom,polybar,rofi/themes,sxhkd}
 
-safe_cp "$SCRIPT_DIR/alacritty/alacritty.toml" ~/.config/alacritty/
-safe_cp "$SCRIPT_DIR/fastfetch/config.jsonc" ~/.config/fastfetch/
-safe_cp "$SCRIPT_DIR/bspwm/bspwmrc" ~/.config/bspwm/
-safe_cp "$SCRIPT_DIR/picom/picom.conf" ~/.config/picom/
-safe_cp "$SCRIPT_DIR/polybar/config.ini" ~/.config/polybar/
-safe_cp "$SCRIPT_DIR/polybar/launch.sh" ~/.config/polybar/
-safe_cp "$SCRIPT_DIR/rofi/config.rasi" ~/.config/rofi/
-safe_cp "$SCRIPT_DIR/rofi/themes/rofi.rasi" ~/.config/rofi/themes/
-safe_cp "$SCRIPT_DIR/sxhkd/sxhkdrc" ~/.config/sxhkd/
+safe_cp "$SCRIPT_DIR/alacritty/alacritty.toml" "$HOME/.config/alacritty/"
+safe_cp "$SCRIPT_DIR/fastfetch/config.jsonc" "$HOME/.config/fastfetch/"
+safe_cp "$SCRIPT_DIR/bspwm/bspwmrc" "$HOME/.config/bspwm/"
+safe_cp "$SCRIPT_DIR/picom/picom.conf" "$HOME/.config/picom/"
+safe_cp "$SCRIPT_DIR/polybar/config.ini" "$HOME/.config/polybar/"
+safe_cp "$SCRIPT_DIR/polybar/launch.sh" "$HOME/.config/polybar/"
+safe_cp "$SCRIPT_DIR/rofi/config.rasi" "$HOME/.config/rofi/"
+safe_cp "$SCRIPT_DIR/rofi/themes/rofi.rasi" "$HOME/.config/rofi/themes/"
+safe_cp "$SCRIPT_DIR/sxhkd/sxhkdrc" "$HOME/.config/sxhkd/"
 
-chmod +x ~/.config/bspwm/bspwmrc 2>/dev/null || true
-chmod +x ~/.config/polybar/launch.sh 2>/dev/null || true
+chmod +x "$HOME/.config/bspwm/bspwmrc" 2>/dev/null || true
+chmod +x "$HOME/.config/polybar/launch.sh" 2>/dev/null || true
 
 # ============================
 # FASTFETCH SETUP
@@ -361,6 +361,25 @@ EOF
 mkdir -p "$HOME/Pictures/wallpapers"
 safe_cp "$SCRIPT_DIR/wallpapers/Debian.jpg" "$HOME/Pictures/wallpapers/Debian.jpg"
 
+# ==================================
+# AUTOMATED NETWORK & APPLET SETUP
+# (Run at absolute end to avoid dropping network mid-install)
+# ==================================
+if [ -f "$SCRIPTS_SUBDIR/network.sh" ]; then
+    show_status "Executing Network Integration Script" "RUN" "50"
+    chmod +x "$SCRIPTS_SUBDIR/network.sh"
+    # Execute network.sh inside its own subshell environment so 'set -e' does not break the main loop
+    if ( "$SCRIPTS_SUBDIR/network.sh" ); then
+        show_status "Network Integration" "SUCCESS"
+    else
+        show_status "Network Integration" "FAIL"
+        FAILED_FILES+=("network.sh returned non-zero setup state")
+    fi
+else
+    echo "[✘] ERROR: network.sh not found in $SCRIPTS_SUBDIR"
+    FAILED_FILES+=("network.sh script missing")
+fi
+
 # ============================
 # FINAL + REBOOT
 # ============================
@@ -371,10 +390,21 @@ echo "=================================="
 echo "✔ All elements deployed correctly"
 echo "=================================="
 
+# Dynamic local error readout (Works perfectly offline)
 if [ ${#FAILED_PACKAGES[@]} -gt 0 ] || [ ${#FAILED_FILES[@]} -gt 0 ]; then
-    printf 'Errors found inside packages: %s\n' "${FAILED_PACKAGES[*]}"
-    printf 'Errors found inside files: %s\n' "${FAILED_FILES[*]}"
-    echo "Press Enter to force reboot..."
+    echo -e "\n\033[1;31m[!] WE FOUND SOME ERRORS DURING THE SETUP:\033[0m"
+    
+    if [ ${#FAILED_PACKAGES[@]} -gt 0 ]; then
+        echo "  -> Failed Packages:"
+        for pkg in "${FAILED_PACKAGES[@]}"; do echo "     • $pkg"; done
+    fi
+    
+    if [ ${#FAILED_FILES[@]} -gt 0 ]; then
+        echo "  -> Failed Files/Scripts:"
+        for file in "${FAILED_FILES[@]}"; do echo "     • $file"; done
+    fi
+    
+    echo -e "\nPress Enter to acknowledge errors and force reboot..."
     read -r
 fi
 

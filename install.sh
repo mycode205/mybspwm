@@ -234,7 +234,7 @@ EOF
 show_status "Touchpad configuration" "SUCCESS"
 
 # ============================
-#  FONTS 
+#  FONTS (UPGRADED WITH SKIP LOGIC)
 # ============================
 mkdir -p "$HOME/.local/share/fonts"
 
@@ -245,47 +245,63 @@ mkdir -p "$HOME/.local/share/fonts"
     # ----------------------------
     # JetBrains Mono
     # ----------------------------
-    show_status "Downloading JetBrains Mono Fonts" "RUN" "30"
-    if wget -q -O JetBrainsMono.zip https://download.jetbrains.com/fonts/JetBrainsMono-2.304.zip; then
-        show_status "Extracting JetBrains Mono Fonts" "RUN" "75"
-        unzip -oq JetBrainsMono.zip -d JetBrainsMono
-        cp JetBrainsMono/fonts/ttf/*.ttf "$HOME/.local/share/fonts/" 2>/dev/null || true
-        show_status "JetBrains Mono" "RUN" "100"
-        show_status "JetBrains Mono" "SUCCESS"
+    if fc-list : family | grep -iq "JetBrains Mono"; then
+        echo "[✔] JetBrains Mono fonts already installed. Skipping."
+        sleep 0.05
     else
-        show_status "JetBrains Mono Download" "FAIL"
+        show_status "Downloading JetBrains Mono Fonts" "RUN" "30"
+        if wget -q -O JetBrainsMono.zip https://download.jetbrains.com/fonts/JetBrainsMono-2.304.zip; then
+            show_status "Extracting JetBrains Mono Fonts" "RUN" "75"
+            unzip -oq JetBrainsMono.zip -d JetBrainsMono
+            cp JetBrainsMono/fonts/ttf/*.ttf "$HOME/.local/share/fonts/" 2>/dev/null || true
+            show_status "JetBrains Mono" "RUN" "100"
+            show_status "JetBrains Mono" "SUCCESS"
+        else
+            show_status "JetBrains Mono Download" "FAIL"
+        fi
     fi
 
     # ----------------------------
     # FiraCode Nerd Font
     # ----------------------------
-    show_status "Downloading FiraCode Nerd Font" "RUN" "25"
-    if wget -q -O FiraCode.zip https://github.com/ryanoasis/nerd-fonts/releases/latest/download/FiraCode.zip; then
-        show_status "Extracting FiraCode Nerd Font" "RUN" "80"
-        mkdir -p FiraCodeTemp
-        unzip -oq FiraCode.zip -d FiraCodeTemp
-        find FiraCodeTemp -name "*.ttf" -exec cp {} "$HOME/.local/share/fonts/" \; >/dev/null 2>&1
-        show_status "FiraCode Nerd Font" "RUN" "100"
-        show_status "FiraCode Nerd Font" "SUCCESS"
+    if fc-list : family | grep -iq "FiraCode Nerd Font"; then
+        echo "[✔] FiraCode Nerd Font already installed. Skipping."
+        sleep 0.05
     else
-        show_status "FiraCode Nerd Font Download" "FAIL"
+        show_status "Downloading FiraCode Nerd Font" "RUN" "25"
+        if wget -q -O FiraCode.zip https://github.com/ryanoasis/nerd-fonts/releases/latest/download/FiraCode.zip; then
+            show_status "Extracting FiraCode Nerd Font" "RUN" "80"
+            mkdir -p FiraCodeTemp
+            unzip -oq FiraCode.zip -d FiraCodeTemp
+            find FiraCodeTemp -name "*.ttf" -exec cp {} "$HOME/.local/share/fonts/" \; >/dev/null 2>&1
+            show_status "FiraCode Nerd Font" "RUN" "100"
+            show_status "FiraCode Nerd Font" "SUCCESS"
+        else
+            show_status "FiraCode Nerd Font Download" "FAIL"
+        fi
     fi
 
     # ----------------------------
     # MesloLGS NF
     # ----------------------------
-    show_status "Downloading MesloLGS NF Fonts" "RUN" "20"
-    wget -q -O Meslo-Regular.ttf https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20Regular.ttf
-    show_status "Downloading MesloLGS NF Fonts" "RUN" "50"
-    wget -q -O Meslo-Bold.ttf https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20Bold.ttf
-    show_status "Downloading MesloLGS NF Fonts" "RUN" "75"
-    wget -q -O Meslo-Italic.ttf https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20Italic.ttf
-    wget -q -O Meslo-BoldItalic.ttf https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20Bold%20Italic.ttf
+    if fc-list : family | grep -iq "MesloLGS NF"; then
+        echo "[✔] MesloLGS NF fonts already installed. Skipping."
+        sleep 0.05
+    else
+        show_status "Downloading MesloLGS NF Fonts" "RUN" "20"
+        wget -q -O Meslo-Regular.ttf https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20Regular.ttf
+        show_status "Downloading MesloLGS NF Fonts" "RUN" "50"
+        wget -q -O Meslo-Bold.ttf https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20Bold.ttf
+        show_status "Downloading MesloLGS NF Fonts" "RUN" "75"
+        wget -q -O Meslo-Italic.ttf https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20Italic.ttf
+        wget -q -O Meslo-BoldItalic.ttf https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20Bold%20Italic.ttf
 
-    cp Meslo*.ttf "$HOME/.local/share/fonts/" 2>/dev/null || true
-    show_status "MesloLGS NF Fonts" "RUN" "100"
-    show_status "MesloLGS NF Fonts" "SUCCESS"
+        cp Meslo*.ttf "$HOME/.local/share/fonts/" 2>/dev/null || true
+        show_status "MesloLGS NF Fonts" "RUN" "100"
+        show_status "MesloLGS NF Fonts" "SUCCESS"
+    fi
 
+    # Refresh font cache if anything changed
     fc-cache -f >/dev/null 2>&1
 )
 

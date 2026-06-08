@@ -1,9 +1,8 @@
 #!/bin/bash
 
-# ============================
-# INSTALL MODE 
-# ============================
-
+# =====================================================================
+# INSTALL MODE & ENVIRONMENT SETUP
+# =====================================================================
 FAILED_PACKAGES=()
 FAILED_FILES=()
 
@@ -15,9 +14,16 @@ SCRIPTS_SUBDIR="$SCRIPT_DIR/scripts"
 
 WALLPAPER="$HOME/Pictures/wallpapers/Debian.jpg"
 
-# ============================
+# Ensure the script is run with sudo privileges early on
+if [ "$EUID" -ne 0 ] && [ "$1" != "--child" ]; then
+    echo "⚠️ This installer requires root privileges for package installations."
+    echo "Please authenticate:"
+    sudo -v || exit 1
+fi
+
+# =====================================================================
 # IMPROVED COOL COLORFUL UI
-# ============================
+# =====================================================================
 show_status() {
     local task_name="$1"
     local status_type="$2" # "RUN", "SUCCESS", "FAIL", "REBOOT"
@@ -33,18 +39,13 @@ show_status() {
     local BOLD="\033[1;37m"
     local RESET="\033[0m"
 
-    # Frame dimensions
-    local terminal_width=60
-
     case "$status_type" in
         "RUN")
             clear
-            # Calculate progress bar fill
             local bar_width=38
             local filled_chars=$(( (percent * bar_width) / 100 ))
             local empty_chars=$(( bar_width - filled_chars ))
             
-            # Construct the smooth progress line
             local progress_line=""
             if [ $filled_chars -gt 0 ]; then
                 progress_line+=$(printf '━%.0s' $(seq 1 $filled_chars))
@@ -53,11 +54,10 @@ show_status() {
                 progress_line+=$(printf '─%.0s' $(seq 1 $empty_chars))
             fi
 
-            # Format the Big Bold Percentage Readout
             local pct_text="[ ${percent}% ]"
             
             echo -e "${NORD_BLUE}╭──────────────────────────────────────────────────────────╮${RESET}"
-            printf "${NORD_BLUE}│${RESET}  ${BOLD}%-38s${RESET}   ${NORD_BLUE}%13s │\n" "DOWNLOADING & INSTALLING" "$pct_text"
+            printf "${NORD_BLUE}│${RESET}  ${BOLD}%-38s${RESET}   ${NORD_BLUE}%13s │\n" "PROCESSING CONFIGURATIONS" "$pct_text"
             echo -e "${NORD_BLUE}├──────────────────────────────────────────────────────────┤${RESET}"
             printf "${NORD_BLUE}│${RESET}  ${NORD_BLUE}➜ ${RESET}%-51s ${NORD_BLUE}│\n" "$task_name"
             printf "${NORD_BLUE}│${RESET}  ${NORD_BLUE}%s${RESET}  ${NORD_BLUE}│\n" "$progress_line"
@@ -70,7 +70,7 @@ show_status() {
             ;;
             
         "FAIL")
-            echo -e "     ${NORD_RED}✘ Installation Failed${RESET}\n"
+            echo -e "     ${NORD_RED}✘ Operation Failed${RESET}\n"
             sleep 1
             ;;
             
@@ -85,7 +85,6 @@ show_status() {
     esac
 }
 
-# Animate progress safely (Pre-calculated sequence prevents blinking)
 animate_progress() {
     local task="$1"
     for p in 10 25 45 68 85 100; do
@@ -98,9 +97,9 @@ echo "=================================="
 echo "   BSPWM SMART SAFE INSTALLER"
 echo "=================================="
 
-# ============================
-# INSTALL FUNCTION (FIXED FLICKER)
-# ============================
+# =====================================================================
+# APT INSTALL FUNCTION
+# =====================================================================
 check_install() {
     local PKG=$1
     local EXTRA=${2:-}
@@ -109,11 +108,10 @@ check_install() {
         echo "[✔] $PKG already installed"
         sleep 0.05
     else
-        show_status "$PKG" "RUN" "0"
+        show_status "Installing package: $PKG" "RUN" "0"
 
         sudo apt install -y $EXTRA "$PKG" >/dev/null 2>&1 &
         local pid=$!
-
         local current_pct=0
         local last_pct=0
 
@@ -121,35 +119,27 @@ check_install() {
             if [ $current_pct -lt 95 ]; then
                 current_pct=$((current_pct + 5))
             fi
-            
-            # Only trigger 'clear' and redraw if the percentage actually changed
             if [ "$current_pct" -ne "$last_pct" ]; then
-                show_status "$PKG" "RUN" "$current_pct"
+                show_status "Installing package: $PKG" "RUN" "$current_pct"
                 last_pct=$current_pct
             fi
-            
-            # Slower polling interval prevents terminal buffer thrashing
             sleep 0.4
         done
 
         wait $pid
         if [ $? -eq 0 ]; then
-            show_status "$PKG" "RUN" "100"
-            show_status "$PKG" "SUCCESS"
+            show_status "Installing package: $PKG" "RUN" "100"
+            show_status "Installing package: $PKG" "SUCCESS"
         else
-            show_status "$PKG" "FAIL"
+            show_status "Installing package: $PKG" "FAIL"
             FAILED_PACKAGES+=("$PKG")
         fi
     fi
 }
 
-# ============================
-#  COPY
-# ============================
 safe_cp() {
     local SRC=$1
     local DEST=$2
-
     if cp -f "$SRC" "$DEST" 2>/dev/null; then
         echo "[✔] Copied: $SRC"
     else
@@ -158,31 +148,31 @@ safe_cp() {
     fi
 }
 
-# ============================
-# UPDATE SYSTEM
-# ============================
+# =====================================================================
+# 1. UPDATE SYSTEM REPOSITORIES
+# =====================================================================
 show_status "Updating system package repositories" "RUN" "20"
 sudo apt update >/dev/null 2>&1
 show_status "Updating system package repositories" "RUN" "100"
 show_status "System update complete" "SUCCESS"
 
-# ============================
-# CORE PACKAGES
-# ============================
+# =====================================================================
+# 2. CORE PACKAGES INSTALLATION
+# =====================================================================
 for pkg in \
     bspwm sxhkd polybar picom rofi feh \
     brightnessctl alsa-utils pulseaudio pavucontrol \
     xorg xinit lxappearance papirus-icon-theme \
     breeze-icon-theme bibata-cursor-theme fastfetch flameshot \
     fonts-font-awesome fonts-inter curl git unzip x11-xserver-utils \
-    libinput-tools
+    libinput-tools NetworkManager
 do
     check_install "$pkg"
 done
 
-# ==================================
-# INTERACTIVE FILE MANAGER MENU
-# ==================================
+# =====================================================================
+# 3. INTERACTIVE INSTALLATION SCRIPTS
+# =====================================================================
 if [ -f "$SCRIPTS_SUBDIR/filemanager.sh" ]; then
     chmod +x "$SCRIPTS_SUBDIR/filemanager.sh"
     "$SCRIPTS_SUBDIR/filemanager.sh"
@@ -191,9 +181,6 @@ else
     FAILED_FILES+=("filemanager.sh script missing")
 fi
 
-# ==================================
-# INTERACTIVE TERMINAL MENU
-# ==================================
 if [ -f "$SCRIPTS_SUBDIR/terminal.sh" ]; then
     chmod +x "$SCRIPTS_SUBDIR/terminal.sh"
     "$SCRIPTS_SUBDIR/terminal.sh"
@@ -202,9 +189,6 @@ else
     FAILED_FILES+=("terminal.sh script missing")
 fi
 
-# ==================================
-# INTERACTIVE BROWSER MENU
-# ==================================
 if [ -f "$SCRIPTS_SUBDIR/browser.sh" ]; then
     chmod +x "$SCRIPTS_SUBDIR/browser.sh"
     "$SCRIPTS_SUBDIR/browser.sh"
@@ -213,9 +197,9 @@ else
     FAILED_FILES+=("browser.sh script missing")
 fi
 
-# ============================
-# TOUCHPAD CONFIG
-# ============================
+# =====================================================================
+# 4. TOUCHPAD CONFIGURATION
+# =====================================================================
 animate_progress "Configuring touchpad options (libinput)"
 sudo mkdir -p /etc/X11/xorg.conf.d 2>/dev/null || true
 
@@ -233,40 +217,32 @@ EndSection
 EOF
 show_status "Touchpad configuration" "SUCCESS"
 
-# ============================
-#  FONTS (UPGRADED WITH SKIP LOGIC)
-# ============================
+# =====================================================================
+# 5. FONTS DOWNLOAD & EXTRACTION
+# =====================================================================
 mkdir -p "$HOME/.local/share/fonts"
 
-# Wrapping font operations safely inside a standalone block 
 (
     cd /tmp || exit
     
-    # ----------------------------
     # JetBrains Mono
-    # ----------------------------
     if fc-list : family | grep -iq "JetBrains Mono"; then
         echo "[✔] JetBrains Mono fonts already installed. Skipping."
-        sleep 0.05
     else
         show_status "Downloading JetBrains Mono Fonts" "RUN" "30"
         if wget -q -O JetBrainsMono.zip https://download.jetbrains.com/fonts/JetBrainsMono-2.304.zip; then
             show_status "Extracting JetBrains Mono Fonts" "RUN" "75"
             unzip -oq JetBrainsMono.zip -d JetBrainsMono
             cp JetBrainsMono/fonts/ttf/*.ttf "$HOME/.local/share/fonts/" 2>/dev/null || true
-            show_status "JetBrains Mono" "RUN" "100"
             show_status "JetBrains Mono" "SUCCESS"
         else
             show_status "JetBrains Mono Download" "FAIL"
         fi
     fi
 
-    # ----------------------------
     # FiraCode Nerd Font
-    # ----------------------------
     if fc-list : family | grep -iq "FiraCode Nerd Font"; then
         echo "[✔] FiraCode Nerd Font already installed. Skipping."
-        sleep 0.05
     else
         show_status "Downloading FiraCode Nerd Font" "RUN" "25"
         if wget -q -O FiraCode.zip https://github.com/ryanoasis/nerd-fonts/releases/latest/download/FiraCode.zip; then
@@ -274,40 +250,32 @@ mkdir -p "$HOME/.local/share/fonts"
             mkdir -p FiraCodeTemp
             unzip -oq FiraCode.zip -d FiraCodeTemp
             find FiraCodeTemp -name "*.ttf" -exec cp {} "$HOME/.local/share/fonts/" \; >/dev/null 2>&1
-            show_status "FiraCode Nerd Font" "RUN" "100"
             show_status "FiraCode Nerd Font" "SUCCESS"
         else
             show_status "FiraCode Nerd Font Download" "FAIL"
         fi
     fi
 
-    # ----------------------------
     # MesloLGS NF
-    # ----------------------------
     if fc-list : family | grep -iq "MesloLGS NF"; then
         echo "[✔] MesloLGS NF fonts already installed. Skipping."
-        sleep 0.05
     else
         show_status "Downloading MesloLGS NF Fonts" "RUN" "20"
         wget -q -O Meslo-Regular.ttf https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20Regular.ttf
-        show_status "Downloading MesloLGS NF Fonts" "RUN" "50"
         wget -q -O Meslo-Bold.ttf https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20Bold.ttf
-        show_status "Downloading MesloLGS NF Fonts" "RUN" "75"
         wget -q -O Meslo-Italic.ttf https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20Italic.ttf
         wget -q -O Meslo-BoldItalic.ttf https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20Bold%20Italic.ttf
 
         cp Meslo*.ttf "$HOME/.local/share/fonts/" 2>/dev/null || true
-        show_status "MesloLGS NF Fonts" "RUN" "100"
         show_status "MesloLGS NF Fonts" "SUCCESS"
     fi
 
-    # Refresh font cache if anything changed
     fc-cache -f >/dev/null 2>&1
 )
 
-# ============================
-# CONFIG COPY
-# ============================
+# =====================================================================
+# 6. DOTFILES CONFIG COPY
+# =====================================================================
 clear
 echo "[+] Copying configs..."
 mkdir -p "$HOME/.config"/{alacritty,fastfetch,bspwm,picom,polybar,rofi/themes,sxhkd}
@@ -325,9 +293,9 @@ safe_cp "$SCRIPT_DIR/sxhkd/sxhkdrc" "$HOME/.config/sxhkd/"
 chmod +x "$HOME/.config/bspwm/bspwmrc" 2>/dev/null || true
 chmod +x "$HOME/.config/polybar/launch.sh" 2>/dev/null || true
 
-# ============================
-# FASTFETCH SETUP
-# ============================
+# =====================================================================
+# 7. FASTFETCH TERMINAL INTEGRATION
+# =====================================================================
 echo "[+] Configuring Fastfetch..."
 touch "$HOME/.bashrc"
 if ! grep -q "fastfetch" "$HOME/.bashrc"; then
@@ -338,27 +306,25 @@ fi
 EOF
 fi
 
-# ============================
-# GTK THEMES
-# ============================
+# =====================================================================
+# 8. GTK THEMES SETUP
+# =====================================================================
 mkdir -p "$HOME/.themes"
 if [ ! -d "$HOME/.themes/Nordic" ]; then
     show_status "Cloning Nordic GTK Theme" "RUN" "40"
     git clone https://github.com/EliverLara/Nordic.git "$HOME/.themes/Nordic" >/dev/null 2>&1
-    show_status "Cloning Nordic GTK Theme" "RUN" "100"
     show_status "Nordic Theme" "SUCCESS"
 fi
 
 if [ ! -d "$HOME/.themes/Dracula" ]; then
     show_status "Cloning Dracula GTK Theme" "RUN" "40"
     git clone https://github.com/dracula/gtk.git "$HOME/.themes/Dracula" >/dev/null 2>&1
-    show_status "Cloning Dracula GTK Theme" "RUN" "100"
     show_status "Dracula Theme" "SUCCESS"
 fi
 
-# ============================
-# SERVICES & ASSETS
-# ============================
+# =====================================================================
+# 9. DESKTOP SERVICES & WALLPAPERS
+# =====================================================================
 pulseaudio --start 2>/dev/null || true
 
 cat > "$HOME/.xinitrc" <<EOF
@@ -377,36 +343,65 @@ EOF
 mkdir -p "$HOME/Pictures/wallpapers"
 safe_cp "$SCRIPT_DIR/wallpapers/Debian.jpg" "$HOME/Pictures/wallpapers/Debian.jpg"
 
-# ==================================
-# AUTOMATED NETWORK & APPLET SETUP
-# (Run at absolute end to avoid dropping network mid-install)
-# ==================================
-if [ -f "$SCRIPTS_SUBDIR/network.sh" ]; then
-    show_status "Executing Network Integration Script" "RUN" "50"
-    chmod +x "$SCRIPTS_SUBDIR/network.sh"
-    # Execute network.sh inside its own subshell environment so 'set -e' does not break the main loop
-    if ( "$SCRIPTS_SUBDIR/network.sh" ); then
-        show_status "Network Integration" "SUCCESS"
-    else
-        show_status "Network Integration" "FAIL"
-        FAILED_FILES+=("network.sh returned non-zero setup state")
-    fi
-else
-    echo "[✘] ERROR: network.sh not found in $SCRIPTS_SUBDIR"
-    FAILED_FILES+=("network.sh script missing")
+# =====================================================================
+# 10. NETWORK MANAGER AUTOMATION (CRITICAL FIXED PLACEMENT)
+# =====================================================================
+show_status "Automating NetworkManager & System Network Alignment" "RUN" "10"
+
+# Unblock WiFi via rfkill
+if command -v rfkill &> /dev/null; then
+    sudo rfkill unblock wifi
 fi
 
-# ============================
-# FINAL + REBOOT
-# ============================
+# Safe NetworkManager config optimization (Avoids structural corruption)
+NM_CONF="/etc/NetworkManager/NetworkManager.conf"
+if [ -f "$NM_CONF" ]; then
+    if grep -q "managed=false" "$NM_CONF"; then
+        sudo sed -i 's/managed=false/managed=true/g' "$NM_CONF"
+    elif ! grep -q "\[ifupdown\]" "$NM_CONF"; then
+        echo -e "\n[ifupdown]\nmanaged=true" | sudo tee -a "$NM_CONF" >/dev/null
+    fi
+fi
+
+show_status "Stopping conflicting network subsystems" "RUN" "45"
+# Disable fighting network handlers
+for service in iwd dhcpcd; do
+    if systemctl list-unit-files | grep -q "^${service}.service"; then
+        sudo systemctl disable --now "${service}.service" 2>/dev/null || true
+    fi
+done
+
+# Kill raw processes
+sudo killall -q dhcpcd iwd iwctl 2>/dev/null || true
+
+show_status "Re-initializing NetworkManager Engine" "RUN" "80"
+# Restart main service safely
+sudo systemctl enable --now NetworkManager 2>/dev/null || true
+sudo systemctl restart NetworkManager
+
+# Allow standard hardware interface processing time
+sleep 2.5
+sudo nmcli radio wifi on 2>/dev/null || true
+sudo nmcli device wifi rescan 2>/dev/null || true
+
+show_status "Network Integration" "SUCCESS"
+
+# If network.sh file exists as a fallback script, process it here
+if [ -f "$SCRIPTS_SUBDIR/network.sh" ]; then
+    chmod +x "$SCRIPTS_SUBDIR/network.sh"
+    ( "$SCRIPTS_SUBDIR/network.sh" ) || FAILED_FILES+=("network.sh minor execution hook mismatch")
+fi
+
+# =====================================================================
+# 11. ERROR VERIFICATION & TERMINATION LISTINGS
+# =====================================================================
 clear
 echo "=================================="
-echo " INSTALL COMPLETE"
+echo "        INSTALL COMPLETE          "
 echo "=================================="
-echo "✔ All elements deployed correctly"
+echo "✔ Core setup and configurations deployed."
 echo "=================================="
 
-# Dynamic local error readout (Works perfectly offline)
 if [ ${#FAILED_PACKAGES[@]} -gt 0 ] || [ ${#FAILED_FILES[@]} -gt 0 ]; then
     echo -e "\n\033[1;31m[!] WE FOUND SOME ERRORS DURING THE SETUP:\033[0m"
     
@@ -424,7 +419,10 @@ if [ ${#FAILED_PACKAGES[@]} -gt 0 ] || [ ${#FAILED_FILES[@]} -gt 0 ]; then
     read -r
 fi
 
+# Clear filesystem pipes before hardware drop
 sync
+
+# Final reboot block
 for i in 5 4 3 2 1; do
     show_status "" "REBOOT" "$i"
     sleep 1

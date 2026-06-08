@@ -98,7 +98,7 @@ echo "   BSPWM SMART SAFE INSTALLER"
 echo "=================================="
 
 # =====================================================================
-# APT INSTALL FUNCTION
+# APT INSTALL FUNCTION (FIXED: NO RECOMMENDED DEPENDENCIES)
 # =====================================================================
 check_install() {
     local PKG=$1
@@ -110,7 +110,8 @@ check_install() {
     else
         show_status "Installing package: $PKG" "RUN" "0"
 
-        sudo apt install -y $EXTRA "$PKG" >/dev/null 2>&1 &
+        # Added '--no-install-recommends' to completely block desktop bloat/extra dependencies
+        sudo apt install -y --no-install-recommends $EXTRA "$PKG" >/dev/null 2>&1 &
         local pid=$!
         local current_pct=0
         local last_pct=0

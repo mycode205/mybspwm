@@ -14,7 +14,7 @@ echo "========================================================"
 # Step 1: Install System Dependencies
 echo "==> Installing NetworkManager and Applet dependencies..."
 sudo apt update
-sudo apt install -y network-manager network-manager-gnome polybar wireless-tools
+sudo apt install -y network-manager network-manager-gnome
 
 # Step 2: Fix Services & Permissions (Crucial to prevent device locks)
 echo "==> Configuring system services..."
@@ -45,14 +45,27 @@ else
     echo "Warning: bspwmrc not found at $BSPWM_CONF. Please check path."
 fi
 
-# Step 4: Automatically Update Polybar Configuration
+# Step 4: Automatically Update Polybar Configuration & Add Modules to the Bar
 echo "==> Appending automated network modules to Polybar config..."
 if [ -f "$POLYBAR_CONF" ]; then
     
     # Backup existing configuration just in case
     cp "$POLYBAR_CONF" "${POLYBAR_CONF}.bak"
 
-    # Append our universal, hardware-detecting network modules to the end of the file
+    # 1. Automatically update modules-right line to include our network and tray modules
+    if grep -E -q "modules-right[[:space:]]*=" "$POLYBAR_CONF"; then
+        # Ensure we don't accidentally duplicate them if script is re-run
+        if ! grep -q "systray" "$POLYBAR_CONF"; then
+            sed -i '/modules-right[[:space:]]*=/ s/$/ wired-network wireless-network systray/' "$POLYBAR_CONF"
+            echo "Successfully injected network and tray modules into modules-right line."
+        else
+            echo "Modules already found in modules-right line. Skipping injection."
+        fi
+    else
+        echo "Warning: Could not find 'modules-right' line to append modules automatically."
+    fi
+
+    # 2. Append our universal, hardware-detecting network modules to the end of the file
     cat << 'EOF' >> "$POLYBAR_CONF"
 
 ;; ==========================================
@@ -69,7 +82,7 @@ interface = ${env:WIRELESS_INT:}
 interface-type = wireless
 interval = 3.0
 format-connected = <label-connected>
-label-connected =   %essid%
+label-connected =  %essid%
 label-connected-foreground = #88c0d0
 format-disconnected = 
 
@@ -79,12 +92,11 @@ interface = ${env:WIRED_INT:}
 interface-type = wired
 interval = 3.0
 format-connected = <label-connected>
-label-connected =   %local_ip%
+label-connected =  %local_ip%
 label-connected-foreground = #88c0d0
 format-disconnected = 
 EOF
-    echo "Successfully appended modules to $POLYBAR_CONF"
-    echo "NOTE: Make sure to add 'wired-network wireless-network systray' to your active bar's 'modules-right' line manually!"
+    echo "Successfully appended modules to the bottom of $POLYBAR_CONF"
 else
     echo "Warning: Polybar configuration file not found at $POLYBAR_CONF."
 fi

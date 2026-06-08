@@ -1,106 +1,69 @@
-#!/usr/bin/env bash
+# =====================================================================
+# NETWORKMANAGER AUTOMATION & FIXED SETUP
+# =====================================================================
+echo "🚀 Starting NetworkManager automation and fix setup..."
 
-# Exit immediately if a command exits with a non-zero status
-set -e
-
-# Define file paths (Adjust these if your configs are in non-standard locations)
-BSPWM_CONF="$HOME/.config/bspwm/bspwmrc"
-POLYBAR_CONF="$HOME/.config/polybar/config.ini"
-
-echo "========================================================"
-echo "==> Starting Automated Network & Polybar Integration..."
-echo "========================================================"
-
-# Step 1: Install System Dependencies Safely
-echo "==> Checking/Installing NetworkManager and Applet dependencies..."
-# Removed 'apt update' to prevent network timeout failures at the end of the script
-sudo apt install -y network-manager network-manager-gnome
-
-# Step 2: Fix Services & Permissions (Crucial to prevent device locks)
-echo "==> Configuring system services..."
-sudo systemctl stop wpa_supplicant 2>/dev/null || true
-sudo systemctl disable wpa_supplicant 2>/dev/null || true
-
-echo "==> Ensuring NetworkManager has management permissions..."
-if [ -f /etc/NetworkManager/NetworkManager.conf ]; then
-    sudo sed -i 's/managed=false/managed=true/g' /etc/NetworkManager/NetworkManager.conf
+# 1. Unblock Wi-Fi globally via rfkill
+echo "⚡ Unblocking Wi-Fi hardware/software locks..."
+if command -v rfkill &> /dev/null; then
+    rfkill unblock wifi
+else
+    echo "⚠️ rfkill not installed, skipping..."
 fi
-sudo systemctl enable NetworkManager || true
-sudo systemctl restart NetworkManager || true
 
-# Step 3: Automatically Configure bspwmrc
-echo "==> Injecting nm-applet background process into bspwmrc..."
-if [ -f "$BSPWM_CONF" ]; then
-    # Wrapped check protects against set -e tracking non-zero match flags
-    if grep -q "nm-applet" "$BSPWM_CONF" 2>/dev/null; then
-        echo "nm-applet configuration already exists in bspwmrc. Skipping."
+# 2. Fix the NetworkManager.conf configuration automatically
+NM_CONF="/etc/NetworkManager/NetworkManager.conf"
+if [ -f "$NM_CONF" ]; then
+    echo "⚙️ Tweaking NetworkManager config to handle all interfaces..."
+    # Check if [ifupdown] section exists, if so fix managed=true
+    if grep -q "\[ifupdown\]" "$NM_CONF"; then
+        sed -i '/\[ifupdown\]/,/^$/ s/managed=false/managed=true/' "$NM_CONF"
     else
-        # Append to the end of bspwmrc
-        echo "" >> "$BSPWM_CONF"
-        echo "# Network management tray applet" >> "$BSPWM_CONF"
-        echo "pgrep -x nm-applet > /dev/null || nm-applet &" >> "$BSPWM_CONF"
-        echo "Successfully added nm-applet to $BSPWM_CONF"
+        # If it doesn't exist, append it cleanly to the end of the file
+        echo -e "\n[ifupdown]\nmanaged=true" >> "$NM_CONF"
     fi
 else
-    echo "Warning: bspwmrc not found at $BSPWM_CONF. Please check path."
+    echo "⚠️ NetworkManager.conf not found at $NM_CONF!"
 fi
 
-# Step 4: Automatically Update Polybar Configuration & Add Modules to the Bar
-echo "==> Appending automated network modules to Polybar config..."
-if [ -f "$POLYBAR_CONF" ]; then
-    
-    # Backup existing configuration just in case
-    cp "$POLYBAR_CONF" "${POLYBAR_CONF}.bak"
-
-    # 1. Automatically update modules-right line safely
-    if grep -E -q "modules-right[[:space:]]*=" "$POLYBAR_CONF" 2>/dev/null; then
-        
-        if grep -q "systray" "$POLYBAR_CONF" 2>/dev/null; then
-            echo "Modules already found in modules-right line. Skipping injection."
-        else
-            sed -i '/modules-right[[:space:]]*=/ s/$/ wired-network wireless-network systray/' "$POLYBAR_CONF"
-            echo "Successfully injected network and tray modules into modules-right line."
-        fi
-    else
-        echo "Warning: Could not find 'modules-right' line to append modules automatically."
+# 3. Handle systemd services (Disabling iwctl, wpa_supplicant, dhcpcd safely)
+echo "🛑 Disabling systemd conflicting services..."
+for service in iwd wpa_supplicant dhcpcd; do
+    if systemctl list-unit-files | grep -q "^${service}.service"; then
+        echo "   -> Stopping and disabling ${service}.service"
+        systemctl disable --now "${service}.service" 2>/dev/null
     fi
+done
 
-    # 2. Append our universal, hardware-detecting network modules to the end of the file
-    cat << 'EOF' >> "$POLYBAR_CONF"
+# 4. Forcefully kill non-systemd standalone processes (like rogue installer scripts)
+echo "💀 Forcefully killing rogue background network processes..."
+killall -q dhcpcd wpa_supplicant iwd iwctl 2>/dev/null
 
-;; ==========================================
-;; Automated Universal Network Configuration
-;; ==========================================
+# 5. Ensure NetworkManager is turned on and radio is enabled
+echo "🌐 Turning NetworkManager on..."
+systemctl enable --now NetworkManager 2>/dev/null
+systemctl restart NetworkManager
 
-[module/systray]
-type = internal/tray
-tray-spacing = 8px
+# Wait a brief moment for NM to initialize the card
+sleep 2
+nmcli radio wifi on 2>/dev/null || true
+nmcli device wifi rescan 2>/dev/null || true
 
-[module/wireless-network]
-type = internal/network
-interface = ${env:WIRELESS_INT:}
-interface-type = wireless
-interval = 3.0
-format-connected = <label-connected>
-label-connected =  %essid%
-label-connected-foreground = #88c0d0
-format-disconnected = 
+echo "--------------------------------------------------------"
+# 6. Automated Verification Checks
+echo "🔍 VERIFICATION: Checking for remaining rogue processes..."
+REMAINING=$(ps aux | grep -E 'iwctl|iwd|wpa_supplicant|dhcpcd' | grep -v 'grep' | grep -v '.install.sh')
 
-[module/wired-network]
-type = internal/network
-interface = ${env:WIRED_INT:}
-interface-type = wired
-interval = 3.0
-format-connected = <label-connected>
-label-connected =  %local_ip%
-label-connected-foreground = #88c0d0
-format-disconnected = 
-EOF
-    echo "Successfully appended modules to the bottom of $POLYBAR_CONF"
+if [ -z "$REMAINING" ]; then
+    echo "   ✅ Clean slate! No rogue network managers running."
 else
-    echo "Warning: Polybar configuration file not found at $POLYBAR_CONF."
+    echo "   ⚠️ Warning: Some processes are stubbornly active:"
+    echo "$REMAINING"
 fi
 
-echo "========================================================"
-echo "Installation and automated script configuration complete!"
-echo "========================================================"
+echo -e "\n🔍 VERIFICATION: Systemd Status Overview:"
+systemctl status iwd wpa_supplicant dhcpcd NetworkManager 2>/dev/null | grep -E '●|Active:' || true
+
+echo "--------------------------------------------------------"
+echo "🎉 Network setup automated successfully!"
+# =====================================================================

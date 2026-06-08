@@ -31,8 +31,8 @@ sudo systemctl restart NetworkManager
 # Step 3: Automatically Configure bspwmrc
 echo "==> Injecting nm-applet background process into bspwmrc..."
 if [ -f "$BSPWM_CONF" ]; then
-    # Check if nm-applet is already mentioned, if not, add it before execution loop
-    if ! grep -q "nm-applet" "$BSPWM_CONF"; then
+    # Safely wrap grep to prevent set -e from tripping on structural mismatches
+    if ! grep -q "nm-applet" "$BSPWM_CONF" 2>/dev/null; then
         # Append to the end of bspwmrc
         echo "" >> "$BSPWM_CONF"
         echo "# Network management tray applet" >> "$BSPWM_CONF"
@@ -52,14 +52,15 @@ if [ -f "$POLYBAR_CONF" ]; then
     # Backup existing configuration just in case
     cp "$POLYBAR_CONF" "${POLYBAR_CONF}.bak"
 
-    # 1. Automatically update modules-right line to include our network and tray modules
-    if grep -E -q "modules-right[[:space:]]*=" "$POLYBAR_CONF"; then
-        # Ensure we don't accidentally duplicate them if script is re-run
-        if ! grep -q "systray" "$POLYBAR_CONF"; then
+    # 1. Automatically update modules-right line safely
+    if grep -E -q "modules-right[[:space:]]*=" "$POLYBAR_CONF" 2>/dev/null; then
+        
+        # Wrapped check protects against set -e tracking non-zero match flags
+        if grep -q "systray" "$POLYBAR_CONF" 2>/dev/null; then
+            echo "Modules already found in modules-right line. Skipping injection."
+        else
             sed -i '/modules-right[[:space:]]*=/ s/$/ wired-network wireless-network systray/' "$POLYBAR_CONF"
             echo "Successfully injected network and tray modules into modules-right line."
-        else
-            echo "Modules already found in modules-right line. Skipping injection."
         fi
     else
         echo "Warning: Could not find 'modules-right' line to append modules automatically."
